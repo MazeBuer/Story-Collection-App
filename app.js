@@ -20,15 +20,27 @@ connectDB()
 
 const app = express()
 
+//Body parser
+app.use(express.urlencoded({extended: false}))
+app.use(express.json())
+
 //Logging
 //if the development (not production) is running for NODE_ENV we will use morgan 
 if(process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'))
 }
 
+//Handlebars Helpers
+const { formatDate, stripTags, truncate, editIcon } = require('./helpers/hbs')
+
 //Handlebars
 app.engine('.hbs', exphbs.engine(  //need to add engine after exphbs
-    {defaultLayout: 'main', //we declared a default layout here, if we want to specify we specify in index.js page and layout: __
+    { helpers: {
+        formatDate,
+        stripTags,
+        truncate,
+        editIcon,
+    },defaultLayout: 'main', //we declared a default layout here, if we want to specify we specify in index.js page and layout: __
     extname: '.hbs'
     })
 );
@@ -50,6 +62,13 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
+
+//Set global variable
+app.use(function (req,res, next) { //call next to go onto next middleware
+    res.locals.user = req.user || null
+    next()
+})
+
 //Static Folder
 app.use(express.static(path.join(__dirname, 'public'))) //will set up our static folder (styles css and other styling folders) and add them and override what materialize (the link in main.hbs that gives some style) does ; inside our public folder will be the css and other styling files
 
@@ -58,7 +77,7 @@ app.use(express.static(path.join(__dirname, 'public'))) //will set up our static
 app.use('/', require('./routes/index')) //index.js file is inside the routes folder
 //even tho dont has specific route for dashboard, it can still read index.js and see you have route for dashboard
 app.use('/auth', require('./routes/auth')) //add other file auth from routes folder
-
+app.use('/stories', require('./routes/stories'))
 
 const PORT = process.env.PORT || 5000
 
